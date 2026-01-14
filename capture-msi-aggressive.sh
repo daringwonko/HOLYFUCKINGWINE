@@ -1,16 +1,31 @@
 #!/bin/bash
 # Aggressive MSI Capture Script
 # Captures any new files in Wine temp directories with 100ms polling
+#
+# CRITICAL FIX: Uses correct Bottles Flatpak paths, not standard Wine paths
 
 set -e
 
-BOTTLE_PREFIX="$HOME/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026"
+# Wine prefix - check custom path first (Bottles uses document portal)
+BOTTLE_PREFIX_CUSTOM="$HOME/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026"
+BOTTLE_PREFIX_STANDARD="$HOME/.var/app/com.usebottles.bottles/data/bottles/bottles/SketchUp2026"
+
+if [ -d "$BOTTLE_PREFIX_CUSTOM/drive_c" ]; then
+    BOTTLE_PREFIX="$BOTTLE_PREFIX_CUSTOM"
+elif [ -d "$BOTTLE_PREFIX_STANDARD/drive_c" ]; then
+    BOTTLE_PREFIX="$BOTTLE_PREFIX_STANDARD"
+else
+    echo "ERROR: No valid Bottles prefix found!"
+    exit 1
+fi
+
 INSTALLER="/home/tomas/SketchUp-2026-1-189-46.exe"
 CAPTURE_DIR="$HOME/SketchUp 2026/HOLYFUCKINGWINE/captured-msi"
 BOTTLES_RUNNER="$HOME/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1"
 
-# Multiple temp locations to monitor (Bottles uses steamuser, but also check tomas)
+# Multiple temp locations to monitor in the Bottles Flatpak sandbox
 TEMP_DIRS=(
+    "$BOTTLE_PREFIX/drive_c/users/$(whoami)/Temp"
     "$BOTTLE_PREFIX/drive_c/users/steamuser/Temp"
     "$BOTTLE_PREFIX/drive_c/users/tomas/Temp"
     "$BOTTLE_PREFIX/drive_c/users/Public/Temp"

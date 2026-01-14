@@ -690,4 +690,234 @@ InstallShield 2024 Suite format has a fundamental incompatibility with Wine:
 
 ---
 
-*Last Updated: 2026-01-13T23:22 UTC-5*
+## Session 3: MSI Capture Attempt & Wine-GE Pivot
+
+**Timestamp:** 2026-01-13T23:30 - 2026-01-14T01:00 UTC-5
+
+### MSI Capture Attempt Results
+
+**Objective:** Capture MSI files via real-time monitoring during installer execution.
+
+**Method:** Used `inotifywait` to monitor Wine temp directories with instant file capture.
+
+**Result:** ❌ **FAILED** - MSI files are never extracted.
+
+**Files Captured (17MB total):**
+- `_is18f4.exe` (12MB) - InstallShield bootstrapper
+- `setup64.exe` (269KB) - 64-bit installer engine
+- `ISSetup.dll`, `ISRT.dll`, `Setup_UI.dll` - InstallShield DLLs
+- `*.mst` files - Language transform files
+- PNG images, icons, etc.
+
+**Critical Finding from InstallShield.log:**
+```
+Stage parcel {F8189C0F-1462-4521-9287-D0AB7EF9EFFC}, parcel action: 5
+ISParcelStatus value now 'KB2999226 Windows 7 x64'
+This stage path: C:\users\steamuser\AppData\Local\Downloaded Installations\{F8189C0F-...}\
+Stage parcel status: 80070006
+Engine: error 80070006 while staging parcels
+UI DLL: Display Error: Invalid handle.
+```
+
+### Root Cause Analysis (Refined)
+
+| Factor | Detail |
+|--------|--------|
+| **Error Code** | `0x80070006` = `ERROR_INVALID_HANDLE` |
+| **Failing Component** | KB2999226 (Universal CRT) Windows Update package |
+| **Failure Mechanism** | `wusa.exe` (Windows Update Standalone Installer) is unimplemented in Wine |
+| **MSI Location** | Would be extracted to `AppData\Local\Downloaded Installations\` |
+| **Cleanup** | InstallShield deletes staging directory on failure |
+
+**Why MSI Capture Failed:**
+InstallShield Suite 2024 stages prerequisites via `wusa.exe` FIRST, then extracts MSI files. Since `wusa.exe` fails immediately, the MSI extraction phase is never reached. The MSI payload remains encrypted inside `ISSetupStream`.
+
+### Capture Scripts Created
+
+| Script | Purpose |
+|--------|---------|
+| [`capture-msi-inotify.sh`](capture-msi-inotify.sh) | Real-time capture using `inotifywait` |
+| [`capture-msi-aggressive.sh`](capture-msi-aggressive.sh) | Polling-based capture (100ms interval) |
+| [`msi-capture-and-run.sh`](msi-capture-and-run.sh) | Basic capture script |
+
+### Next Steps
+
+**Option 1: Wine-GE Runner** (In Progress)
+- Download Wine-GE-Proton from GitHub releases
+- GloriousEggroll builds include additional compatibility patches
+- May have better `wusa.exe` stub or workarounds
+
+**Option 2: Windows VM Extraction** (Fallback)
+- Install SketchUp 2026 on Windows (VM or real)
+- Copy `C:\Program Files\SketchUp\SketchUp 2026\` to Linux
+- Run via Bottles (dependencies already installed)
+
+**Option 3: Contact Trimble**
+- Request enterprise MSI installer that doesn't use InstallShield Suite
+
+### Files of Interest
+
+| Path | Description |
+|------|-------------|
+| [`InstallShield.log`](InstallShield.log) | Full installer log (1.6MB, UTF-16LE encoded) |
+| `captured-msi/` | Captured InstallShield files (17MB) |
+| `SketchUp2026/` | Bottles prefix with dependencies installed |
+
+---
+
+## Session 4: Fake wusa.exe Deployment & Corrected Script Paths
+
+**Timestamp:** 2026-01-14T01:00 - 01:10 UTC-5
+
+### User Technical Feedback (Critical Corrections)
+
+1. **WoW64 File System Redirection** (Critical Fix Applied)
+   - SketchUp installer is a **32-bit process** (verified via `IsWow64Process=TRUE` logs)
+   - 32-bit processes accessing `C:\Windows\System32` are **redirected** to `SysWOW64`
+   - **Solution:** Compile 32-bit `wusa.exe` and place in `SysWOW64` (not just System32)
+
+2. **Bottles Temp Path Correction** (Critical Fix Applied)
+   - Previous scripts watched wrong temp directories
+   - **Actual Bottles path:** `~/.var/app/com.usebottles.bottles/data/bottles/bottles/SketchUp2026/...`
+   - **But this was a placeholder!** The real prefix is at custom path:
+     ```
+     /home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026/
+     ```
+   - This was discovered via `placeholder.yml` which contains a document portal reference
+
+3. **Wine Prefix Path Discrepancy** (Acknowledged)
+   - Scripts had inconsistent paths (`~/.wine/sketchup2026` vs `~/.sketchup2026`)
+   - For Bottles, we use the custom path set during bottle creation
+
+### Actions Completed
+
+#### 1. Fake wusa.exe Compilation & Deployment
+
+**Compilers installed:**
+- ✅ `i686-w64-mingw32-gcc` (32-bit) - was available
+- ✅ `x86_64-w64-mingw32-gcc` (64-bit) - installed via `dnf install mingw64-gcc`
+
+**Binaries created:**
+- `build/wusa32.exe` - 32-bit fake wusa.exe
+- `build/wusa64.exe` - 64-bit fake wusa.exe
+
+**Deployment locations:**
+```
+BOTTLE_PREFIX = /home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026/
+
+wusa32.exe → $BOTTLE_PREFIX/drive_c/windows/syswow64/wusa.exe     # For 32-bit installer
+wusa64.exe → $BOTTLE_PREFIX/drive_c/windows/system32/wusa.exe    # For completeness
+```
+
+**Originals backed up to:**
+- `syswow64/wusa.exe.backup`
+- `system32/wusa.exe.backup`
+
+#### 2. Scripts Updated with Correct Paths
+
+| Script | Fix Applied |
+|--------|-------------|
+| [`deploy-fake-wusa.sh`](deploy-fake-wusa.sh) | Auto-detects custom or standard Bottles path |
+| [`watch-temp-for-msi.sh`](watch-temp-for-msi.sh) | Uses correct custom Bottles prefix |
+| [`capture-msi-aggressive.sh`](capture-msi-aggressive.sh) | Uses correct custom Bottles prefix |
+
+### Next Steps
+
+1. **Test fake wusa.exe** - Run installer in Bottles to see if it bypasses KB2999226 check
+2. **Alternative: Manual "Snatch and Grab"** - Run [`watch-temp-for-msi.sh`](watch-temp-for-msi.sh) in one terminal, installer in another
+3. **If MSI files appear** - Copy them and run via `msiexec /i` directly
+
+### Manual Test Instructions
+
+**Terminal 1 (MSI Watcher):**
+```bash
+cd "/home/tomas/SketchUp 2026/HOLYFUCKINGWINE"
+./watch-temp-for-msi.sh
+```
+
+**Terminal 2 (Bottles installer):**
+```bash
+# Via Bottles GUI: Run Executable → /home/tomas/SketchUp-2026-1-189-46.exe
+# OR via command line:
+WINEPREFIX="/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026" \
+~/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine \
+/home/tomas/SketchUp-2026-1-189-46.exe
+```
+
+**If MSI files appear in `/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/captured-msi/`:**
+```bash
+WINEPREFIX="/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026" \
+~/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine \
+msiexec /i /path/to/captured.msi
+```
+
+### Expected Outcomes
+
+| Scenario | Indicator |
+|----------|-----------|
+| **Fake wusa works** | Installer progresses past "Preparing..." stage |
+| **Fake wusa doesn't help** | Same "Invalid handle" error at KB2999226 |
+| **MSI files captured** | Files appear in `captured-msi/` directory |
+| **Need Windows VM** | If neither approach works |
+
+---
+
+## Quick Reference: All Important File Paths
+
+### Installer and Prefix Locations
+
+| Item | Path |
+|------|------|
+| **SketchUp Installer** | `/home/tomas/SketchUp-2026-1-189-46.exe` |
+| **Bottles Wine Prefix** | `/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026/` |
+| **Workspace Directory** | `/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/` |
+
+### Wine Prefix Internals
+
+| Item | Path |
+|------|------|
+| **System32 (64-bit)** | `.../SketchUp2026/drive_c/windows/system32/` |
+| **SysWOW64 (32-bit)** | `.../SketchUp2026/drive_c/windows/syswow64/` |
+| **Windows Temp** | `.../SketchUp2026/drive_c/windows/Temp/` |
+| **User Temp** | `.../SketchUp2026/drive_c/users/$(whoami)/Temp/` |
+| **Steamuser Temp** | `.../SketchUp2026/drive_c/users/steamuser/Temp/` |
+| **Downloaded Installations** | `.../SketchUp2026/drive_c/users/steamuser/AppData/Local/Downloaded Installations/` |
+
+### Bottles Infrastructure
+
+| Item | Path |
+|------|------|
+| **Bottles Data Root** | `~/.var/app/com.usebottles.bottles/data/bottles/` |
+| **Bottles Runners** | `~/.var/app/com.usebottles.bottles/data/bottles/runners/` |
+| **Soda Runner** | `~/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine` |
+| **Bottles Placeholder** | `~/.var/app/com.usebottles.bottles/data/bottles/bottles/SketchUp2026/placeholder.yml` |
+
+### Scripts Created This Session
+
+| Script | Path | Purpose |
+|--------|------|---------|
+| **deploy-fake-wusa.sh** | [`deploy-fake-wusa.sh`](deploy-fake-wusa.sh) | Compiles and deploys fake wusa.exe |
+| **watch-temp-for-msi.sh** | [`watch-temp-for-msi.sh`](watch-temp-for-msi.sh) | Manual MSI capture watcher |
+| **capture-msi-aggressive.sh** | [`capture-msi-aggressive.sh`](capture-msi-aggressive.sh) | Automated aggressive MSI capture |
+| **fake-wusa.c** | [`fake-wusa.c`](fake-wusa.c) | Fake wusa.exe source code |
+
+### Build Artifacts
+
+| Item | Path |
+|------|------|
+| **32-bit fake wusa.exe** | `./build/wusa32.exe` |
+| **64-bit fake wusa.exe** | `./build/wusa64.exe` |
+| **Captured files** | `./captured-msi/` |
+
+### Deployed Fake wusa.exe
+
+| Deployed Location | Target |
+|-------------------|--------|
+| `.../syswow64/wusa.exe` | 32-bit installer sees this (WoW64 redirection) |
+| `.../system32/wusa.exe` | 64-bit processes see this |
+| `.../syswow64/wusa.exe.backup` | Original Wine wusa.exe backup |
+| `.../system32/wusa.exe.backup` | Original Wine wusa.exe backup |
+
+---
+
+*Last Updated: 2026-01-14T01:10 UTC-5*
