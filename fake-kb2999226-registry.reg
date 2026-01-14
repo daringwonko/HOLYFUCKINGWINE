@@ -1,0 +1,38 @@
+Windows Registry Editor Version 5.00
+
+; Fake KB2999226 (Universal CRT) as installed
+; This makes InstallShield skip the wusa.exe call
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages\Package_for_KB2999226~31bf3856ad364e35~amd64~~10.0.1.0]
+"CurrentState"=dword:00000070
+"InstallClient"="DISM Package Manager Provider"
+"InstallName"="Package_for_KB2999226~31bf3856ad364e35~amd64~~10.0.1.0"
+"InstallTime"="20251201120000.000000-000"
+"ReleaseType"=dword:00000001
+"Visibility"=dword:00000002
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\ApplicabilityEvaluationCache\Package_for_KB2999226~31bf3856ad364e35~amd64~~10.0.1.0]
+"ApplicabilityState"=dword:00000050
+
+; Also add for x86 (32-bit) since installer is 32-bit
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages\Package_for_KB2999226~31bf3856ad364e35~x86~~10.0.1.0]
+"CurrentState"=dword:00000070
+"InstallClient"="DISM Package Manager Provider"
+
+; Windows Update installed packages marker
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Updates\Windows 7\KB2999226]
+"InstalledDate"="12/01/2025"
+"InstalledBy"="NT AUTHORITY\\SYSTEM"
+"Description"="Update for Universal C Runtime in Windows"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Updates\Windows 7\KB2999226]
+"InstalledDate"="12/01/2025"
+"InstalledBy"="NT AUTHORITY\\SYSTEM"
+"Description"="Update for Universal C Runtime in Windows"
+
+; Universal CRT registry keys (more direct approach)
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\SideBySide\Winners\amd64_microsoft-windows-ucrt_31bf3856ad364e35_none_b9e20d55f96fb295\10.0]
+@="10.0.10240.16390"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\SideBySide\Winners\x86_microsoft-windows-ucrt_31bf3856ad364e35_none_5dc377d241122155\10.0]
+@="10.0.10240.16390"
