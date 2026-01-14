@@ -920,4 +920,37 @@ msiexec /i /path/to/captured.msi
 
 ---
 
-*Last Updated: 2026-01-14T01:10 UTC-5*
+## Session 5: Complete Root Cause Analysis & Decision Point
+
+**Timestamp:** 2026-01-14T01:25 UTC-5
+
+### Test Results: Fake wusa.exe
+
+| Test | Result |
+|------|--------|
+| Fake wusa.exe deployed to syswow64 (32-bit) | ✅ Verified with `file` command |
+| Fake wusa.exe deployed to system32 (64-bit) | ✅ Verified with `file` command |
+| Original Wine stubs backed up | ✅ Both `.backup` files exist |
+| Installer bypasses KB2999226 check | ❌ **FAILED - Same "Invalid handle" error** |
+
+### Root Cause: WUA COM API Failure (NOT wusa.exe)
+
+The installer uses `CoCreateInstance(CLSID_WindowsUpdateAgentInfo, ...)` which fails in Wine before wusa.exe is called.
+
+**Why all bypass attempts failed:**
+
+| Approach | Why It Failed |
+|----------|---------------|
+| Fake wusa.exe returning 0 | wusa.exe is never called - COM crashes first |
+| Registry keys for KB2999226 | API crashes before registry check |
+| InstallShield `/extract_all` switch | Not supported by Suite format |
+
+### Decision Point: Two Paths Forward
+
+**Option 1: Windows VM Extraction** - Run installer in VM, copy files to Linux
+
+**Option 2: Wine-GE Runner** - Try GloriousEggroll's patched Wine builds
+
+---
+
+*Last Updated: 2026-01-14T01:25 UTC-5*
