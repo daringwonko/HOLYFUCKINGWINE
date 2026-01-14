@@ -1,0 +1,96 @@
+# Manual Download Commands
+
+If the download scripts don't work, use these commands directly:
+
+## Create Directory Structure
+```bash
+mkdir -p packages/tools
+mkdir -p packages/wine
+mkdir -p packages/winetricks-components
+```
+
+## Download Winetricks
+```bash
+cd packages/tools
+wget https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
+chmod +x winetricks
+cd ../..
+```
+
+## Download Wine Stable for Fedora 42
+
+### Option 1: Download Both Wine Packages
+```bash
+cd packages/wine
+
+# Main Wine package
+wget https://dl.winehq.org/wine-builds/fedora/42/x86_64/wine-stable-10.0-1.fc42.x86_64.rpm
+
+# Wine common package
+wget https://dl.winehq.org/wine-builds/fedora/42/x86_64/wine-common-10.0-1.fc42.noarch.rpm
+
+cd ../..
+```
+
+### Option 2: Try Alternative Mirrors (if above fails)
+```bash
+# Try Fedora 41 if 42 not available
+wget https://dl.winehq.org/wine-builds/fedora/41/x86_64/wine-stable-10.0-1.fc41.x86_64.rpm
+wget https://dl.winehq.org/wine-builds/fedora/41/x86_64/wine-common-10.0-1.fc41.noarch.rpm
+
+# Or try a different mirror
+wget https://dl.winehq.org/wine-builds/fedora/x86_64/wine-stable-10.0-1.fc42.x86_64.rpm
+```
+
+## Verify Downloads
+```bash
+# Check what was downloaded
+ls -lah packages/
+ls -lah packages/tools/
+ls -lah packages/wine/
+
+# Total size
+du -sh packages/
+```
+
+## Additional Reference Files
+```bash
+# Create RPM Fusion reference (copy/paste into a file)
+cat > packages/tools/rpmfusion-setup.txt << 'EOF'
+RPM Fusion Repositories for Fedora 42:
+
+Free: https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-42.noarch.rpm
+Non-free: https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-42.noarch.rpm
+EOF
+```
+
+## What Gets Downloaded
+
+| Component | Size | Required |
+|-----------|------|----------|
+| Winetricks | ~100 KB | ✅ Yes |
+| wine-stable RPM | ~200-300 MB | ⏳ Optional |
+| wine-common RPM | ~10-20 MB | ⏳ Optional |
+
+**Total:** ~200-350 MB (if downloading RPMs)
+
+## After Downloads
+
+Once files are in `packages/` directory:
+
+1. Transfer entire repository to your Fedora 42 machine
+2. Run: `./sketchup-wine-setup/scripts/00-master-setup-offline.sh`
+3. The script will find and use the downloaded packages automatically
+
+## If Downloads Fail
+
+The offline setup script has fallbacks:
+- If Winetricks not found locally → uses system winetricks
+- If Wine RPMs not found → uses dnf to download
+- No packages needed → script still works, just downloads during setup
+
+So even if downloads fail, you can still run the offline setup script on your machine and it will work!
+
+---
+
+**Bottom Line:** The `packages/` directory is optional. The offline setup script works either way. It's just faster if you pre-download the large components like WebView2 (~1-2 GB).

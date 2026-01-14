@@ -1,0 +1,82 @@
+# Wine and related source code repositories
+wine-master/
+dxvk-master/
+vkd3d-proton-master/
+winetricks-master/
+
+# Installers and binaries
+*.exe
+*.msi
+*.msu
+*.cab
+*.deb
+*.rpm
+*.zip
+*.tar.gz
+*.tar.bz2
+*.dmg
+*.pkg
+*.iso
+*.img
+
+# Specific large installers
+SketchUp-*.exe
+MicrosoftEdgeWebView2RuntimeInstaller*.exe
+Microsoft.WebView2.*.cab
+NDP48-*.exe
+VC_redist*.exe
+
+# Build artifacts
+*.o
+*.obj
+*.dll
+*.so
+*.a
+*.lib
+*.dylib
+*.plist
+
+# Wine prefix (personal user data)
+.sketchup2026/
+SketchUp2026/
+.home/.wine*/
+
+# Captured MSI files
+captured-msi/
+
+# Packages directory
+packages/
+
+# Diagnostic output directories
+wine-diagnose-*/
+
+# Downloads
+downloads/
+
+# Wine source build artifacts
+wine-master/config.log
+wine-master/config.status
+wine-master/autom4te.cache/
+wine-master/po/*.gmo
+wine-master/po/*.mo
+wine-master/include/config.h
+wine-master/include/wine/config.h
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Installation logs
+InstallShield.log
+
+# User-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
