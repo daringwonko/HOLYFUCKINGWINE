@@ -268,7 +268,7 @@ cat > /tmp/${VM_NAME}.xml << XMLEOF
 
     <!-- VirtIO Disk -->
     <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' cache='writeback' io='native' discard='unmap'/>
+      <driver name='qemu' type='qcow2' cache='none' io='native' discard='unmap'/>
       <source file='${DISK_PATH}'/>
       <target dev='vda' bus='virtio'/>
     </disk>
