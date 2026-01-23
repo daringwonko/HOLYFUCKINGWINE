@@ -945,12 +945,234 @@ The installer uses `CoCreateInstance(CLSID_WindowsUpdateAgentInfo, ...)` which f
 | Registry keys for KB2999226 | API crashes before registry check |
 | InstallShield `/extract_all` switch | Not supported by Suite format |
 
-### Decision Point: Two Paths Forward
+### Final Verdict: Wine Cannot Run This Installer
 
-**Option 1: Windows VM Extraction** - Run installer in VM, copy files to Linux
+The `CoCreateInstance` call fails **before** the installer logic can even decide to run wusa.exe or extract the MSI. It fails at the "load the library to check prerequisites" stage.
 
-**Option 2: Wine-GE Runner** - Try GloriousEggroll's patched Wine builds
+**You cannot script your way around a missing COM interface implementation in Wine without recompiling Wine itself with deep patches.**
 
 ---
 
-*Last Updated: 2026-01-14T01:25 UTC-5*
+## Recommended Solution: Windows VM Extraction
+
+### Why This Is The Only Reliable Path
+
+1. SketchUp is "portable enough" - copying installed files to Linux works
+2. The Bottles environment already has all required runtimes (VC++, .NET, DXVK)
+3. You just need the actual program files
+
+### Step-by-Step VM Extraction Guide
+
+#### 1. Set Up Windows VM
+
+**Quick Option - Windows 10 Evaluation:**
+```
+https://www.microsoft.com/en-us/evalcenter/download-windows-10-enterprise
+```
+- Download ISO (~5GB)
+- Create VM: 4GB RAM, 40GB disk, 2 CPUs
+- Install Windows (skip product key - 90-day eval)
+
+**Alternative - Tiny10/11:**
+- Smaller footprint, faster install
+- Search for "Tiny10" or "Tiny11" ISOs
+
+#### 2. Install SketchUp in VM
+
+1. Copy installer to VM: `/home/tomas/SketchUp-2026-1-189-46.exe`
+2. Run installer in Windows - will complete successfully
+3. Skip Trimble login if possible (or create account)
+
+#### 3. Locate and Zip Installed Files
+
+**Main Application:**
+```
+C:\Program Files\SketchUp\SketchUp 2026\
+```
+
+**Common Files (if exists):**
+```
+C:\Program Files\Common Files\SketchUp\
+```
+
+**Create archive:**
+```powershell
+Compress-Archive -Path "C:\Program Files\SketchUp\SketchUp 2026" -DestinationPath C:\SketchUp2026.zip
+```
+
+#### 4. Transfer to Linux
+
+Transfer `SketchUp2026.zip` via:
+- Shared folder
+- USB stick
+- Network share
+- Direct copy if using VirtualBox Guest Additions
+
+#### 5. Deploy to Bottles
+
+```bash
+# Unzip to Bottles prefix
+unzip ~/SketchUp2026.zip -d "/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026/drive_c/Program Files/SketchUp/"
+
+# Verify
+ls -la "/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026/drive_c/Program Files/SketchUp/SketchUp 2026/"
+```
+
+#### 6. Launch via Bottles
+
+```bash
+WINEPREFIX="/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026" \
+~/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine \
+"C:\Program Files\SketchUp\SketchUp 2026\SketchUp.exe"
+```
+
+Or via Bottles GUI: Run Executable → Navigate to `SketchUp.exe`
+
+---
+
+## Alternative: Wine-GE (Quick Try Before VM)
+
+GloriousEggroll often patches WUA stubs for game launchers.
+
+### How to Try
+
+1. Open Bottles → Preferences → Runners
+2. Download `wine-ge-proton8-26` (or latest)
+3. Edit SketchUp2026 bottle → Change runner to Wine-GE
+4. Try installer one more time
+
+**Probability of success: ~20%** - Worth a 5-minute test before committing to VM setup.
+
+---
+
+## Alternative: Universal Extractor 2
+
+If you want to try extracting without VM:
+
+1. Download `UniExtract2` from GitHub
+2. Run via Bottles: `wine UniExtract.exe`
+3. Point at `SketchUp-2026-1-189-46.exe`
+4. May extract MSI or raw files if it handles Suite format
+
+---
+
+## Session Summary
+
+| Attempt | Result |
+|---------|--------|
+| Fake wusa.exe (32-bit + 64-bit) | ❌ Failed - COM crashes before wusa.exe called |
+| Registry keys for KB2999226 | ❌ Failed - API crashes before registry check |
+| InstallShield CLI switches | ❌ Not supported by Suite format |
+| MSI Snatch during extraction | ❌ MSI never extracted - failure is earlier |
+
+**Final Diagnosis:** Wine's Windows Update Agent COM implementation is incomplete. The installer crashes at `CoCreateInstance(CLSID_WindowsUpdateAgentInfo)` before any file extraction.
+
+**Solution:** Windows VM extraction is the only reliable path.
+
+---
+
+## Session 6: Wine-GE-Proton8-26 Test
+
+**Timestamp:** 2026-01-14T03:24 - 04:05 UTC-5
+
+### Wine-GE Installation
+
+**Objective:** Test Wine-GE-Proton8-26 runner as last attempt before Windows VM extraction.
+
+**Installation:**
+```bash
+# Downloaded from GitHub releases
+wget -O wine-ge.tar.gz "https://github.com/GloriousEggroll/wine-ge-custom/releases/download/GE-Proton8-26/wine-lutris-GE-Proton8-26-x86_64.tar.xz"
+
+# Extracted to Bottles runners directory
+tar -xf wine-ge.tar.xz -C ~/.var/app/com.usebottles.bottles/data/bottles/runners/
+```
+
+**Runner Path:** `~/.var/app/com.usebottles.bottles/data/bottles/runners/lutris-GE-Proton8-26-x86_64/`
+
+### Configuration Change
+
+Updated [`SketchUp2026/bottle.yml`](SketchUp2026/bottle.yml:60):
+```yaml
+Runner: lutris-GE-Proton8-26-x86_64  # Changed from soda-9.0-1
+```
+
+### Test Result: ❌ FAILED (Different Error)
+
+**Command:**
+```bash
+WINEPREFIX="/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026" \
+WINEDEBUG=-all \
+~/.var/app/com.usebottles.bottles/data/bottles/runners/lutris-GE-Proton8-26-x86_64/bin/wine \
+/home/tomas/SketchUp-2026-1-189-46.exe
+```
+
+**Output:**
+```
+wineserver: using server-side synchronization.
+wine: RLIMIT_NICE is <= 20, unable to use setpriority safely
+wine: configuration in L"/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026" has been updated.
+C:\users\steamuser\Temp\{CAED453F-2094-4279-929A-81C194A849CC}\_is473e.exe: File Not Found
+Exit 17
+```
+
+### Analysis: Wine-GE Path Resolution Issue
+
+| Finding | Detail |
+|---------|--------|
+| **Error** | `_is473e.exe: File Not Found` |
+| **Exit Code** | 17 |
+| **Stage Reached** | Bootstrapper extraction to Temp directory |
+| **Issue** | Path resolution mismatch - Wine-GE updated prefix but temp files weren't accessible |
+
+**Wine-GE Observations:**
+1. ✅ Wine-GE did enable server-side synchronization (esync/fsync)
+2. ✅ Prefix was updated to Wine-GE format
+3. ❌ Installer bootstrapper extracted to temp but path wasn't resolved
+4. ❌ No GUI appeared - immediate failure
+
+**Possible Causes:**
+- Wine-GE has different temp directory handling
+- Flatpak sandbox path mapping issue
+- InstallShield bootstrapper using absolute paths that Wine-GE resolves differently
+
+### Conclusion: Wine-GE Not Compatible
+
+Wine-GE-Proton8-26 fails at a different stage than soda-9.0-1:
+- **soda-9.0-1:** Fails at WUA COM interface (`CoCreateInstance`)
+- **Wine-GE:** Fails at temp file path resolution (bootstrapper extraction)
+
+Neither can run the installer successfully.
+
+### Current Runners Status
+
+| Runner | Version | Test Result |
+|--------|---------|-------------|
+| soda-9.0-1 | 9.0-1 | ❌ WUA COM failure |
+| sys-wine-10.0 | 10.0 | ❌ Same WUA COM failure (from vanilla Wine-staging tests) |
+| lutris-GE-Proton8-26-x86_64 | 8-26 | ❌ Path resolution failure |
+
+### Final Recommendation
+
+**All Wine-based approaches exhausted.** Proceed to Windows VM extraction:
+
+1. Download Windows 10 Evaluation ISO
+2. Create VM (VirtualBox/QEMU/VMware)
+3. Install SketchUp 2026 in Windows
+4. Copy `C:\Program Files\SketchUp\SketchUp 2026\` to Linux
+5. Deploy to Bottles prefix
+
+**Files to Copy from Windows:**
+```
+C:\Program Files\SketchUp\SketchUp 2026\
+C:\Program Files\Common Files\SketchUp\ (if exists)
+```
+
+**Deploy Location:**
+```
+/home/tomas/SketchUp 2026/HOLYFUCKINGWINE/SketchUp2026/drive_c/Program Files/SketchUp/
+```
+
+---
+
+*Last Updated: 2026-01-14T04:05 UTC-5*
