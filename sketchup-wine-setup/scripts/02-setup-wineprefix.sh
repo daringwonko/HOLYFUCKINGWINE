@@ -4,8 +4,8 @@
 
 set -e
 
-# Configuration
-export WINEPREFIX="$HOME/.wine/sketchup2026"
+# Configuration - STANDARDIZED PATH (matches all other scripts)
+export WINEPREFIX="$HOME/.sketchup2026"
 export WINEARCH=win64
 export WINEDEBUG=-all
 
@@ -88,4 +88,4 @@ echo ""
 echo "Next step: Use 03-launch-sketchup.sh to run SketchUp 2026"
 echo ""
 echo "IMPORTANT: Keep the WINEPREFIX at: $WINEPREFIX"
-echo "When transferring to another system, copy the entire ~/.wine/sketchup2026 directory"
+echo "When transferring to another system, copy the entire ~/.sketchup2026 directory"
