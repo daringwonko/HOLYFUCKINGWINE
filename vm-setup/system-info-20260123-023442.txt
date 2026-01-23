@@ -1,0 +1,91 @@
+========================================
+System Information Report
+Generated: Fri Jan 23 02:34:42 AM EST 2026
+========================================
+
+=== OS Information ===
+NAME="Fedora Linux"
+VERSION="42 (Workstation Edition)"
+ID=fedora
+Linux savage-cabinetry 6.18.5-100.fc42.x86_64 #1 SMP PREEMPT_DYNAMIC Sun Jan 11 18:16:46 UTC 2026 x86_64 GNU/Linux
+
+=== CPU Information ===
+CPU(s):                                  8
+On-line CPU(s) list:                     0-7
+Model name:                              Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+CPU family:                              6
+Model:                                   158
+Thread(s) per core:                      2
+Core(s) per socket:                      4
+Socket(s):                               1
+Stepping:                                9
+CPU(s) scaling MHz:                      91%
+Virtualization:                          VT-x
+NUMA node0 CPU(s):                       0-7
+
+=== Virtualization Support ===
+VT-x/AMD-V in /proc/cpuinfo:
+16
+
+KVM modules loaded:
+kvm_intel             561152  0
+kvm                  1523712  1 kvm_intel
+irqbypass              16384  2 vfio_pci_core,kvm
+
+=== Memory ===
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       3.8Gi       7.0Gi       487Mi       5.4Gi        11Gi
+Swap:          8.0Gi          0B       8.0Gi
+
+=== Storage Devices ===
+NAME          SIZE TYPE FSTYPE MOUNTPOINT MODEL
+zram0           8G disk swap   [SWAP]     
+nvme0n1     476.9G disk                   INTEL SSDPEKKW512G7
+├─nvme0n1p1   600M part vfat   /boot/efi  
+├─nvme0n1p2     1G part ext4   /boot      
+└─nvme0n1p3 475.4G part btrfs  /home      
+
+=== GPU Information ===
+00:02.0 VGA compatible controller: Intel Corporation Kaby Lake-H GT2 [HD Graphics 630] (rev 04)
+01:00.0 VGA compatible controller: NVIDIA Corporation GP107M [GeForce GTX 1050 Ti Mobile] (rev a1)
+
+NVIDIA Driver:
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+nvidia-smi not available
+
+=== IOMMU Status ===
+IOMMU Groups found: 18
+
+GPU IOMMU Groups:
+  Group 0: 00:02.0 VGA compatible controller [0300]: Intel Corporation Kaby Lake-H GT2 [HD Graphics 630] [8086:591b] (rev 04)
+  Group 2: 01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107M [GeForce GTX 1050 Ti Mobile] [10de:1c8c] (rev a1)
+
+=== Libvirt Status ===
+inactive
+libvirtd not installed
+Compiled against library: libvirt 11.0.0
+Using library: libvirt 11.0.0
+Using API: QEMU 11.0.0
+Running hypervisor: QEMU 9.2.4
+
+
+=== User Groups ===
+tomas wheel kvm ollama libvirt
+
+=== Kernel Parameters ===
+BOOT_IMAGE=(hd0,gpt2)/vmlinuz-6.18.5-100.fc42.x86_64 root=UUID=b4ac1db1-5640-4a7b-ab53-d1f2145bf6ee ro rootflags=subvol=root rhgb quiet rd.driver.blacklist=nouveau,nova_core modprobe.blacklist=nouveau,nova_core intel_iommu=on iommu=pt
+
+=== BIOS/UEFI Mode ===
+System booted in UEFI mode
+
+=== Disk Space ===
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p3  476G  157G  316G  34% /
+/dev/nvme0n1p3  476G  157G  316G  34% /home
+
+=== Network (default libvirt) ===
+ Name   State   Autostart   Persistent
+----------------------------------------
+
+
